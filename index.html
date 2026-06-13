@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="mg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Formulaire Sakafo</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 520px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    .objectif-box {
+      background: #ecfdf5;
+      border: 1px solid #86efac;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .objectif-box strong {
+      font-size: 20px;
+      color: #166534;
+    }
+
+    .progress-container {
+      width: 100%;
+      background: #e5e7eb;
+      border-radius: 20px;
+      overflow: hidden;
+      height: 18px;
+      margin-top: 12px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #16a34a;
+      transition: width 0.3s ease;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-top: 6px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 25px;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      background: #15803d;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .info {
+      background: #e0f2fe;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-size: 14px;
+      color: #075985;
+    }
+
+    .warning {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    .success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    .status {
+      margin-top: 15px;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>Formulaire Sakafo</h1>
+    <p class="subtitle">Fenoy azafady ity formulaire ity.</p>
+
+    <div class="objectif-box">
+      <div>Objectif Hen'omby</div>
+      <strong><span id="totalActuel">0</span> kg / 60 kg</strong>
+
+      <div class="progress-container">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+
+      <p id="resteMessage"></p>
+    </div>
+
+    <div id="objectifAtteintMessage" class="success hidden">
+      ✅ Efa tratra ny objectif 60 kg Hen'omby.  
+      Afaka manao don en argent ianao raha tianao, hividianana zavatra hafa.
+    </div>
+
+    <form id="sakafoForm">
+
+      <label for="anarana">Anarana</label>
+      <input type="text" id="anarana" name="anarana" required />
+
+      <label for="mail">Mail (facultatif)</label>
+      <input type="email" id="mail" name="mail" />
+
+      <div id="viandeSection">
+
+        <div class="info">
+          Minimum Hen'omby : 3 kg. Objectif total : 60 kg.
+        </div>
+
+        <label for="henomby">Hen'omby en kg</label>
+        <input 
+          type="number" 
+          id="henomby" 
+          name="henomby" 
+          min="3" 
+          step="0.5" 
+          placeholder="Ohatra : 3, 5, 10"
+        />
+
+        <div id="minimumMessage" class="warning hidden">
+          ⚠️ Minimum 3 kg de Hen'omby. Raha latsaky ny 3 kg dia tsy afaka alefa ilay formulaire.
+        </div>
+
+      </div>
+
+      <div id="donSection" class="hidden">
+        <label for="donArgent">Don en argent</label>
+        <input 
+          type="number" 
+          id="donArgent" 
+          name="donArgent" 
+          min="1" 
+          step="1" 
+          placeholder="Ohatra : 10 €"
+        />
+      </div>
+
+      <label for="voankazo">Mikasa hitondra voankazo aho ka :</label>
+      <input 
+        type="text" 
+        id="voankazo" 
+        name="voankazo" 
+        placeholder="Ohatra paoma 1 kilao na koa Akondro 1 kilao" 
+      />
+
+      <label for="autres">Mikasa hanolotra</label>
+      <textarea 
+        id="autres" 
+        name="autres" 
+        rows="3" 
+        placeholder="Ohatra vola hividianana kojakoja na samihafa"
+      ></textarea>
+
+      <div id="restrictedFields" class="hidden">
+
+        <div class="info">
+          Ireto kosa ho an'ny olona voatondro mialoha ihany.
+        </div>
+
+        <label for="lasaryVoatabia">Lasary-voatabia</label>
+        <input type="text" id="lasaryVoatabia" name="lasaryVoatabia" />
+
+        <label for="romazava">Romazava</label>
+        <input type="text" id="romazava" name="romazava" />
+
+        <label for="vary">Vary</label>
+        <input type="text" id="vary" name="vary" />
+
+      </div>
+
+      <button type="submit" id="submitBtn">Alefa</button>
+
+      <div id="status" class="status"></div>
+
+    </form>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
