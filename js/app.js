@@ -264,21 +264,30 @@ form.addEventListener("submit", async function(e) {
 
     await envoyerVersGoogleSheet(data);
 
-    await chargerTotalDepuisGoogleSheet();
+// Mise à jour locale immédiate du total, sans attendre Google Sheet
+if (reste > 0) {
+  totalHenombyActuel = totalHenombyActuel + henomby;
+  afficherObjectif();
 
-    if (reste > 0) {
-      statusDiv.textContent = `✅ Misaotra ${anarana}. Hen'omby voaray : ${henomby} kg.`;
-    } else {
-      statusDiv.textContent = `✅ Misaotra ${anarana}. Don argent voaray : ${donArgent} €.`;
-    }
+  statusDiv.textContent = `✅ Misaotra ${anarana}. Hen'omby voaray : ${henomby} kg.`;
+} else {
+  statusDiv.textContent = `✅ Misaotra ${anarana}. Don argent voaray : ${donArgent} €.`;
+}
 
-    statusDiv.style.color = "green";
+statusDiv.style.color = "green";
 
-    form.reset();
-    restrictedFields.classList.add("hidden");
-    remettreFormulaireNormal();
+form.reset();
+restrictedFields.classList.add("hidden");
+remettreFormulaireNormal();
 
-    await chargerTotalDepuisGoogleSheet();
+// Tentative de synchronisation avec Google Sheet, mais sans bloquer le succès
+chargerTotalDepuisGoogleSheet()
+  .then(() => {
+    console.log("Total resynchronisé après envoi :", totalHenombyActuel);
+  })
+  .catch(error => {
+    console.warn("Réponse enregistrée, mais total non resynchronisé :", error);
+  });
 
   } catch (error) {
     console.error(error);
