@@ -257,42 +257,47 @@ form.addEventListener("submit", async function(e) {
     vary
   };
 
-  try {
-    submitBtn.disabled = true;
-    statusDiv.textContent = "⏳ Mandefa...";
-    statusDiv.style.color = "#555";
+  submitBtn.disabled = true;
+  statusDiv.textContent = "⏳ Mandefa...";
+  statusDiv.style.color = "#555";
 
+  try {
     await envoyerVersGoogleSheet(data);
 
-// Mise à jour locale immédiate du total, sans attendre Google Sheet
-if (reste > 0) {
-  totalHenombyActuel = totalHenombyActuel + henomby;
-  afficherObjectif();
+    // Ici, on considère l'envoi comme réussi.
+    // Avec mode no-cors, le navigateur ne peut pas lire la réponse,
+    // mais si la ligne arrive dans Google Sheet, c'est bien enregistré.
+    if (reste > 0) {
+      totalHenombyActuel = totalHenombyActuel + henomby;
+      afficherObjectif();
 
-  statusDiv.textContent = `✅ Misaotra ${anarana}. Hen'omby voaray : ${henomby} kg.`;
-} else {
-  statusDiv.textContent = `✅ Misaotra ${anarana}. Don argent voaray : ${donArgent} €.`;
-}
+      statusDiv.textContent = `✅ Misaotra ${anarana}. Hen'omby voaray : ${henomby} kg.`;
+    } else {
+      statusDiv.textContent = `✅ Misaotra ${anarana}. Don argent voaray : ${donArgent} €.`;
+    }
 
-statusDiv.style.color = "green";
+    statusDiv.style.color = "green";
 
-form.reset();
-restrictedFields.classList.add("hidden");
-remettreFormulaireNormal();
+    form.reset();
+    restrictedFields.classList.add("hidden");
+    remettreFormulaireNormal();
 
-// Tentative de synchronisation avec Google Sheet, mais sans bloquer le succès
-chargerTotalDepuisGoogleSheet()
-  .then(() => {
-    console.log("Total resynchronisé après envoi :", totalHenombyActuel);
-  })
-  .catch(error => {
-    console.warn("Réponse enregistrée, mais total non resynchronisé :", error);
-  });
+    // On essaie de resynchroniser le total, mais sans afficher d'erreur utilisateur
+    chargerTotalDepuisGoogleSheet()
+      .then(() => {
+        console.log("Total resynchronisé après envoi :", totalHenombyActuel);
+      })
+      .catch(error => {
+        console.warn("Réponse enregistrée, mais total non resynchronisé :", error);
+      });
 
   } catch (error) {
-    console.error(error);
-    statusDiv.textContent = "❌ Nisy olana. Tsy voarakitra ilay formulaire.";
-    statusDiv.style.color = "red";
+    console.error("Erreur réelle pendant l'envoi :", error);
+
+    statusDiv.textContent =
+      "⚠️ La réponse a peut-être été envoyée. Vérifie Google Sheet avant de renvoyer.";
+    statusDiv.style.color = "orange";
+
   } finally {
     submitBtn.disabled = false;
   }
