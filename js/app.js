@@ -317,9 +317,9 @@ chargerTotalDepuisGoogleSheet()
 setInterval(() => {
   chargerTotalDepuisGoogleSheet()
     .then(() => {
-      console.log("Total Hen'omby mis à jour automatiquement :", totalHenombyActuel);
+      console.log("✅ Total Hen'omby mis à jour automatiquement :", totalHenombyActuel);
     })
     .catch(error => {
-      console.error("Erreur mise à jour auto :", error);
+      console.error("❌ Erreur mise à jour auto :", error);
     });
 }, 30000);
