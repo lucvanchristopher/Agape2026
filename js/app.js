@@ -1,9 +1,14 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxsCRVRvEq7yM3qZi1t1L0oselGv7y6hd9-jwD31Iwv3fjcDMPaYQQ60mzwgG-jceKsIA/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxjcm9FTr0t1fJ1WLHdF93Vr2GhlzLHbkpheCecZTk1B2eeUxgLtw5V7LC4n7UlSpDuOQ/exec";
 
 // URL du CSV publié (Fichier → Partager → Publier sur le web → feuille "Reponses" → CSV)
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTD4kZQj44eIOlS65oZBc1_BcqcagIfRrDUKg_bFFw4ZGdtuN0T0jsYVnDAy-fMOJDvnuNmW27vIN9p/pub?gid=1950272531&single=true&output=csv";
 
 let totalHenombyActuel = 0;
+
+// Mode "Hanome vola fotsiny" : true quand l'utilisateur a cliqué sur le bouton
+// "HANOME VOLA FOTSINY". Dans ce mode, seuls Anarana, Mail et Vola homena
+// (don en argent) sont utiles.
+let modeDonSeulement = false;
 
 const OBJECTIF_HENOMBY = 60;
 const MINIMUM_HENOMBY = 3;
@@ -29,6 +34,10 @@ const objectifAtteintMessage = document.getElementById("objectifAtteintMessage")
 
 const viandeSection = document.getElementById("viandeSection");
 const donSection = document.getElementById("donSection");
+const voankazoSection = document.getElementById("voankazoSection");
+const autresSection = document.getElementById("autresSection");
+
+const donSeulementBtn = document.getElementById("donSeulementBtn");
 
 const totalActuelSpan = document.getElementById("totalActuel");
 const resteMessage = document.getElementById("resteMessage");
@@ -57,6 +66,38 @@ function afficherObjectif() {
 
   totalActuelSpan.textContent = totalHenombyActuel;
   progressBar.style.width = pourcentage + "%";
+
+  // --- Mode "Hanome vola fotsiny" ---
+  // L'utilisateur a choisi de donner uniquement de l'argent, peu importe le
+  // reste à atteindre. On masque tout sauf Anarana, Mail et Vola homena.
+  if (modeDonSeulement) {
+    viandeSection.classList.add("hidden");
+    donSection.classList.remove("hidden");
+    voankazoSection.classList.add("hidden");
+    autresSection.classList.add("hidden");
+    restrictedFields.classList.add("hidden");
+
+    minimumMessage.classList.add("hidden");
+
+    if (reste > 0) {
+      resteMessage.textContent =
+        `Mbola mila ${reste} kg Hen'omby hahatratra 60 kg, fa afaka manome vola fotsiny ianao.`;
+      objectifAtteintMessage.classList.add("hidden");
+    } else {
+      resteMessage.textContent = "Tafakatra ny objectif 60 kg Hen'omby.";
+      objectifAtteintMessage.classList.remove("hidden");
+    }
+
+    donSeulementBtn.textContent = "HANOME HEN'OMBY NA ZAVATRA HAFA";
+    submitBtn.disabled = false;
+    remettreFormulaireNormal();
+    return;
+  }
+
+  // --- Mode normal ---
+  voankazoSection.classList.remove("hidden");
+  autresSection.classList.remove("hidden");
+  donSeulementBtn.textContent = "HANOME VOLA FOTSINY";
 
   if (reste > 0) {
     const minimumDemande = calculerMinimumDemande();
@@ -89,6 +130,12 @@ function afficherObjectif() {
 }
 
 function verifierEmailAutorise() {
+  if (modeDonSeulement) {
+    // En mode "vola fotsiny", les champs réservés ne s'affichent jamais.
+    restrictedFields.classList.add("hidden");
+    return;
+  }
+
   const mail = mailInput.value.toLowerCase().trim();
 
   if (EMAILS_AUTORISES.includes(mail)) {
@@ -103,6 +150,13 @@ function verifierEmailAutorise() {
 }
 
 function verifierMinimumHenomby() {
+  if (modeDonSeulement) {
+    minimumMessage.classList.add("hidden");
+    submitBtn.disabled = false;
+    remettreFormulaireNormal();
+    return;
+  }
+
   const reste = calculerReste();
 
   if (reste === 0) {
@@ -233,6 +287,23 @@ async function envoyerVersGoogleSheet(data) {
 mailInput.addEventListener("input", verifierEmailAutorise);
 henombyInput.addEventListener("input", verifierMinimumHenomby);
 
+donSeulementBtn.addEventListener("click", function() {
+  modeDonSeulement = !modeDonSeulement;
+
+  // On vide les champs qui ne servent plus dans le mode choisi
+  henombyInput.value = "";
+  donArgentInput.value = "";
+
+  afficherObjectif();
+
+  if (!modeDonSeulement) {
+    verifierEmailAutorise();
+    verifierMinimumHenomby();
+  }
+
+  statusDiv.textContent = "";
+});
+
 form.addEventListener("submit", async function(e) {
   e.preventDefault();
 
@@ -244,10 +315,15 @@ form.addEventListener("submit", async function(e) {
   const henomby = Number(henombyInput.value || 0);
   const donArgent = Number(donArgentInput.value || 0);
 
-  const voankazo = document.getElementById("voankazo").value.trim();
-  const autres = document.getElementById("autres").value.trim();
+  const voankazo = modeDonSeulement
+    ? ""
+    : document.getElementById("voankazo").value.trim();
 
-  const isAutorise = EMAILS_AUTORISES.includes(mail);
+  const autres = modeDonSeulement
+    ? ""
+    : document.getElementById("autres").value.trim();
+
+  const isAutorise = !modeDonSeulement && EMAILS_AUTORISES.includes(mail);
 
   const lasaryVoatabia = isAutorise
     ? document.getElementById("lasaryVoatabia").value.trim()
@@ -267,24 +343,41 @@ form.addEventListener("submit", async function(e) {
     return;
   }
 
-  if (reste > 0 && henomby < minimumDemande) {
-    statusDiv.textContent =
-      `❌ Minimum ${minimumDemande} kg Hen'omby. Il reste ${reste} kg pour atteindre l'objectif.`;
-    statusDiv.style.color = "red";
-    return;
+  if (modeDonSeulement) {
+    if (donArgent <= 0) {
+      statusDiv.textContent = "❌ Azafady, ampidiro ny vola homena.";
+      statusDiv.style.color = "red";
+      return;
+    }
+  } else {
+    if (reste > 0 && henomby < minimumDemande) {
+      statusDiv.textContent =
+        `❌ Minimum ${minimumDemande} kg Hen'omby. Il reste ${reste} kg pour atteindre l'objectif.`;
+      statusDiv.style.color = "red";
+      return;
+    }
+
+    if (reste === 0 && donArgent <= 0) {
+      statusDiv.textContent = "❌ Azafady, ampidiro ny montant du don.";
+      statusDiv.style.color = "red";
+      return;
+    }
   }
 
-  if (reste === 0 && donArgent <= 0) {
-    statusDiv.textContent = "❌ Azafady, ampidiro ny montant du don.";
-    statusDiv.style.color = "red";
-    return;
-  }
+  // Hen'omby n'est enregistré que si on n'est pas en mode "vola fotsiny"
+  // ET qu'il reste de la viande à collecter.
+  const henombyAEnvoyer = (!modeDonSeulement && reste > 0) ? henomby : "";
+
+  // Le don en argent est enregistré soit en mode "vola fotsiny",
+  // soit quand l'objectif viande est déjà atteint.
+  const donArgentAEnvoyer = (modeDonSeulement || reste === 0) ? donArgent : "";
 
   const data = {
     anarana,
     mail,
-    henomby: reste > 0 ? henomby : "",
-    donArgent: reste === 0 ? donArgent : "",
+    henomby: henombyAEnvoyer,
+    donArgent: donArgentAEnvoyer,
+    donSeulement: modeDonSeulement,
     voankazo,
     autres,
     lasaryVoatabia,
@@ -302,19 +395,21 @@ form.addEventListener("submit", async function(e) {
     // Ici, on considère l'envoi comme réussi.
     // Avec mode no-cors, le navigateur ne peut pas lire la réponse,
     // mais si la ligne arrive dans Google Sheet, c'est bien enregistré.
-    if (reste > 0) {
+    if (!modeDonSeulement && reste > 0) {
       totalHenombyActuel = totalHenombyActuel + henomby;
-      afficherObjectif();
-
       statusDiv.textContent = `✅ Misaotra ${anarana}. Hen'omby voaray : ${henomby} kg.`;
     } else {
-      statusDiv.textContent = `✅ Misaotra ${anarana}. Don argent voaray : ${donArgent} €.`;
+      statusDiv.textContent = `✅ Misaotra ${anarana}. Vola voaray : ${donArgent} €.`;
     }
 
     statusDiv.style.color = "green";
 
+    // On revient au mode normal pour la prochaine personne
+    modeDonSeulement = false;
+
     form.reset();
     restrictedFields.classList.add("hidden");
+    afficherObjectif();
     remettreFormulaireNormal();
 
     // On essaie de resynchroniser le total, mais sans afficher d'erreur utilisateur
