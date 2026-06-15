@@ -152,31 +152,54 @@ function remettreFormulaireNormal() {
 
 function chargerTotalDepuisGoogleSheet() {
   return new Promise((resolve, reject) => {
-    const callbackName = "callbackTotal_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+    const callbackName =
+      "callbackTotal_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+
+    const script = document.createElement("script");
 
     window[callbackName] = function(response) {
       try {
-        if (response.success) {
+        console.log("Réponse Apps Script reçue :", response);
+
+        if (response && response.success === true) {
           totalHenombyActuel = Number(response.totalHenomby || 0);
           afficherObjectif();
           resolve(response);
         } else {
-          reject(response.message);
+          reject(
+            response && response.message
+              ? response.message
+              : "Réponse Apps Script invalide."
+          );
         }
       } catch (error) {
         reject(error);
       } finally {
         delete window[callbackName];
-        script.remove();
+
+        if (script && script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
       }
     };
 
-    const script = document.createElement("script");
-    script.src = `${SCRIPT_URL}?action=getTotal&callback=${callbackName}&t=${Date.now()}`;
+    script.src =
+      SCRIPT_URL +
+      "?action=getTotal" +
+      "&callback=" +
+      callbackName +
+      "&t=" +
+      new Date().getTime();
+
+    console.log("URL JSONP appelée :", script.src);
 
     script.onerror = function() {
       delete window[callbackName];
-      script.remove();
+
+      if (script && script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+
       reject("Impossible de charger le total Hen'omby.");
     };
 
