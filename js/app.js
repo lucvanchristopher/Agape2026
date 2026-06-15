@@ -1,5 +1,8 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxsCRVRvEq7yM3qZi1t1L0oselGv7y6hd9-jwD31Iwv3fjcDMPaYQQ60mzwgG-jceKsIA/exec";
 
+// URL du CSV publié (Fichier → Partager → Publier sur le web → feuille "Reponses" → CSV)
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTD4kZQj44eIOlS65oZBc1_BcqcagIfRrDUKg_bFFw4ZGdtuN0T0jsYVnDAy-fMOJDvnuNmW27vIN9p/pub?gid=1950272531&single=true&output=csv";
+
 let totalHenombyActuel = 0;
 
 const OBJECTIF_HENOMBY = 60;
@@ -150,60 +153,69 @@ function remettreFormulaireNormal() {
   });
 }
 
+// Petit parseur CSV qui gère les guillemets et les virgules dans les champs texte
+function parserLigneCSV(ligne) {
+  const valeurs = [];
+  let valeurCourante = "";
+  let dansGuillemets = false;
+
+  for (let i = 0; i < ligne.length; i++) {
+    const car = ligne[i];
+
+    if (car === '"') {
+      dansGuillemets = !dansGuillemets;
+    } else if (car === "," && !dansGuillemets) {
+      valeurs.push(valeurCourante);
+      valeurCourante = "";
+    } else {
+      valeurCourante += car;
+    }
+  }
+
+  valeurs.push(valeurCourante);
+  return valeurs;
+}
+
 function chargerTotalDepuisGoogleSheet() {
   return new Promise((resolve, reject) => {
-    const callbackName =
-      "callbackTotal_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+    // Cache-busting : on ajoute un paramètre aléatoire
+    const url = CSV_URL + "&t=" + new Date().getTime();
 
-    const script = document.createElement("script");
-
-    window[callbackName] = function(response) {
-      try {
-        console.log("Réponse Apps Script reçue :", response);
-
-        if (response && response.success === true) {
-          totalHenombyActuel = Number(response.totalHenomby || 0);
-          afficherObjectif();
-          resolve(response);
-        } else {
-          reject(
-            response && response.message
-              ? response.message
-              : "Réponse Apps Script invalide."
-          );
+    fetch(url)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Réponse réseau invalide : " + response.status);
         }
-      } catch (error) {
+        return response.text();
+      })
+      .then(texteCSV => {
+        const lignes = texteCSV.trim().split("\n");
+
+        // On ignore la première ligne (en-têtes)
+        let total = 0;
+
+        for (let i = 1; i < lignes.length; i++) {
+          const colonnes = parserLigneCSV(lignes[i]);
+
+          // Colonne D = index 3 = HEN'OMBY
+          const valeurBrute = colonnes[3] ? colonnes[3].trim() : "";
+
+          if (valeurBrute !== "") {
+            const valeur = Number(valeurBrute.replace(",", "."));
+
+            if (!isNaN(valeur)) {
+              total += valeur;
+            }
+          }
+        }
+
+        totalHenombyActuel = total;
+        afficherObjectif();
+        resolve({ success: true, totalHenomby: total });
+      })
+      .catch(error => {
         reject(error);
-      } finally {
-        delete window[callbackName];
-
-        if (script && script.parentNode) {
-          script.parentNode.removeChild(script);
-        }
-      }
-    };
-
-    script.src =
-      SCRIPT_URL +
-      "?action=getTotal" +
-      "&callback=" +
-      callbackName +
-      "&t=" +
-      new Date().getTime();
-
-    console.log("URL JSONP appelée :", script.src);
-
-    script.onerror = function() {
-      delete window[callbackName];
-
-      if (script && script.parentNode) {
-        script.parentNode.removeChild(script);
-      }
-
-      reject("Impossible de charger le total Hen'omby.");
-    };
-
-    document.body.appendChild(script);
+      });
   });
 }
 
@@ -325,14 +337,15 @@ form.addEventListener("submit", async function(e) {
     submitBtn.disabled = false;
   }
 });
-// Au chargement de la page, on récupère d'abord le vrai total depuis Google Sheet
+
+// Au chargement de la page, on récupère d'abord le vrai total depuis le CSV publié
 chargerTotalDepuisGoogleSheet()
   .then(() => {
-    console.log("✅ Total Hen'omby chargé depuis Google Sheet :", totalHenombyActuel);
+    console.log("✅ Total Hen'omby chargé depuis le CSV publié :", totalHenombyActuel);
   })
   .catch(error => {
     console.error("❌ Erreur chargement total initial :", error);
-    statusDiv.textContent = "⚠️ Tsy afaka naka ny total avy amin'ny Google Sheet.";
+    statusDiv.textContent = "⚠️ Tsy afaka naka ny total amin'izao fotoana izao. Afaka mameno formulaire ihany ianao.";
     statusDiv.style.color = "red";
   });
 
