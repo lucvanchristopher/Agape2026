@@ -302,17 +302,15 @@ form.addEventListener("submit", async function(e) {
     submitBtn.disabled = false;
   }
 });
-afficherObjectif();
-
+// Au chargement de la page, on récupère d'abord le vrai total depuis Google Sheet
 chargerTotalDepuisGoogleSheet()
   .then(() => {
-    console.log("Total Hen'omby chargé depuis Google Sheet :", totalHenombyActuel);
+    console.log("✅ Total Hen'omby chargé depuis Google Sheet :", totalHenombyActuel);
   })
   .catch(error => {
-    console.error(error);
+    console.error("❌ Erreur chargement total initial :", error);
     statusDiv.textContent = "⚠️ Tsy afaka naka ny total avy amin'ny Google Sheet.";
     statusDiv.style.color = "red";
-    afficherObjectif();
   });
 
 // Recharge seulement le total Hen'omby toutes les 30 secondes
