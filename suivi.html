@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="mg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Suivi Sakafo - Agape 2026</title>
+  <link rel="icon" href="data:,">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #555;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+
+    .totaux {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .totaux .box {
+      flex: 1;
+      min-width: 140px;
+      background: #ecfdf5;
+      border: 1px solid #86efac;
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .totaux .box.vola {
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+
+    .totaux .box .label {
+      font-size: 13px;
+      color: #555;
+    }
+
+    .totaux .box .valeur {
+      font-size: 20px;
+      font-weight: bold;
+      color: #166534;
+    }
+
+    .totaux .box.vola .valeur {
+      color: #1d4ed8;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      border: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      text-align: left;
+    }
+
+    th {
+      background: #f9fafb;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:nth-child(even) {
+      background: #fafafa;
+    }
+
+    .table-wrapper {
+      max-height: 60vh;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+    }
+
+    .num {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .status {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .error {
+      color: #991b1b;
+      font-weight: bold;
+    }
+
+    .refresh-btn {
+      display: block;
+      margin: 15px auto 0;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #15803d;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .refresh-btn:hover {
+      background: #166534;
+    }
+
+    .vide {
+      text-align: center;
+      color: #999;
+      padding: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>Suivi Sakafo</h1>
+    <p class="subtitle">Famintinana ny valinteny - Agape 2026</p>
+
+    <div class="totaux">
+      <div class="box">
+        <div class="label">Hen'omby total</div>
+        <div class="valeur"><span id="totalHenomby">0</span> kg</div>
+      </div>
+      <div class="box vola">
+        <div class="label">Vola total</div>
+        <div class="valeur"><span id="totalVola">0</span> €</div>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Anarana</th>
+            <th class="num">Hen'omby (kg)</th>
+            <th class="num">Vola (€)</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="4" class="vide">Mandeha alaina ny angona...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <button class="refresh-btn" id="refreshBtn">Manavao</button>
+    <div id="status" class="status"></div>
+  </div>
+
+  <script>
+    // URL du CSV publié (Fichier → Partager → Publier sur le web → feuille "Reponses" → CSV)
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTD4kZQj44eIOlS65oZBc1_BcqcagIfRrDUKg_bFFw4ZGdtuN0T0jsYVnDAy-fMOJDvnuNmW27vIN9p/pub?gid=1950272531&single=true&output=csv";
+
+    const tableBody = document.getElementById("tableBody");
+    const totalHenombySpan = document.getElementById("totalHenomby");
+    const totalVolaSpan = document.getElementById("totalVola");
+    const statusDiv = document.getElementById("status");
+    const refreshBtn = document.getElementById("refreshBtn");
+
+    // Petit parseur CSV qui gère les guillemets et les virgules dans les champs texte
+    function parserLigneCSV(ligne) {
+      const valeurs = [];
+      let valeurCourante = "";
+      let dansGuillemets = false;
+
+      for (let i = 0; i < ligne.length; i++) {
+        const car = ligne[i];
+
+        if (car === '"') {
+          dansGuillemets = !dansGuillemets;
+        } else if (car === "," && !dansGuillemets) {
+          valeurs.push(valeurCourante);
+          valeurCourante = "";
+        } else {
+          valeurCourante += car;
+        }
+      }
+
+      valeurs.push(valeurCourante);
+      return valeurs;
+    }
+
+    function formaterNombre(valeurBrute) {
+      if (!valeurBrute) {
+        return 0;
+      }
+
+      const valeur = Number(String(valeurBrute).trim().replace(",", "."));
+      return isNaN(valeur) ? 0 : valeur;
+    }
+
+    function chargerDonnees() {
+      statusDiv.textContent = "⏳ Mandeha alaina...";
+      statusDiv.classList.remove("error");
+
+      const url = CSV_URL + "&t=" + new Date().getTime();
+
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("Réponse réseau invalide : " + response.status);
+          }
+          return response.text();
+        })
+        .then(texteCSV => {
+          const lignes = texteCSV.trim().split("\n");
+
+          let totalHenomby = 0;
+          let totalVola = 0;
+
+          const lignesHtml = [];
+
+          for (let i = 1; i < lignes.length; i++) {
+            if (!lignes[i].trim()) {
+              continue;
+            }
+
+            const colonnes = parserLigneCSV(lignes[i]);
+
+            const date = colonnes[0] ? colonnes[0].trim() : "";
+            const anarana = colonnes[1] ? colonnes[1].trim() : "";
+            const henomby = formaterNombre(colonnes[3]);
+            const vola = formaterNombre(colonnes[9]);
+
+            totalHenomby += henomby;
+            totalVola += vola;
+
+            lignesHtml.push(`
+              <tr>
+                <td>${escapeHtml(date)}</td>
+                <td>${escapeHtml(anarana)}</td>
+                <td class="num">${henomby > 0 ? henomby : ""}</td>
+                <td class="num">${vola > 0 ? vola : ""}</td>
+              </tr>
+            `);
+          }
+
+          if (lignesHtml.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="4" class="vide">Tsy misy angona.</td></tr>`;
+          } else {
+            // On affiche les plus récents en premier
+            tableBody.innerHTML = lignesHtml.reverse().join("");
+          }
+
+          totalHenombySpan.textContent = totalHenomby;
+          totalVolaSpan.textContent = totalVola;
+
+          const maintenant = new Date().toLocaleTimeString("fr-FR");
+          statusDiv.textContent = "✅ Nohavaozina tamin'ny " + maintenant;
+          statusDiv.classList.remove("error");
+        })
+        .catch(error => {
+          console.error("Erreur chargement CSV :", error);
+          statusDiv.textContent = "❌ Tsy afaka naka ny angona : " + error.message;
+          statusDiv.classList.add("error");
+        });
+    }
+
+    function escapeHtml(texte) {
+      const div = document.createElement("div");
+      div.textContent = texte;
+      return div.innerHTML;
+    }
+
+    refreshBtn.addEventListener("click", chargerDonnees);
+
+    // Chargement initial
+    chargerDonnees();
+
+    // Rafraîchissement automatique toutes les 30 secondes
+    setInterval(chargerDonnees, 30000);
+  </script>
+
+</body>
+</html>
