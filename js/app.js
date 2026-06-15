@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzkfIEHwm9fEwaCHjOWlMsrR-xmndERybSfPb4ypHN_FzJqZqDFlq7BtiC1ZB2q9bV6Iw/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9qLajmKnp7si293Hwt2CBvsf8YOvB1KnogsZkh_ynpKDuJdiaM42YZwPpIrekJjjS/exec";
 
 let totalHenombyActuel = 0;
 
