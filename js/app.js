@@ -302,7 +302,6 @@ form.addEventListener("submit", async function(e) {
     submitBtn.disabled = false;
   }
 });
-
 afficherObjectif();
 
 chargerTotalDepuisGoogleSheet()
